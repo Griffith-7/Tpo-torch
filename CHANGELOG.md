@@ -17,7 +17,6 @@
 
 ### Fixed
 - Dead code in `integration_test.py` (duplicate `forward` method)
-- Numerical inefficiency in loss computation (exp/log round-trip replaced with softplus identity)
 
 ### Changed
 - Upgraded `pyproject.toml` with full metadata, classifiers, and scripts
