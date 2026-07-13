@@ -4,7 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org)
 [![CI](https://github.com/Griffith-7/tpo-torch/actions/workflows/ci.yml/badge.svg)](https://github.com/Griffith-7/tpo-torch/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Griffith-7/tpo-torch/pulls)
 
 **Target Policy Optimization** — experimental RLHF implementation using cross-entropy with advantage-weighted target distributions.
 
@@ -26,6 +25,8 @@ loss        = -target_prob * log P_policy(token)
 | Stable under sparse reward | Often fails | Often fails | **Strong** |
 
 TPO separates *which completions deserve mass* from *how parameters move*. The gradient `p^theta - q` vanishes exactly at the target — no overshooting, no undershooting.
+
+**Tradeoff:** TPO's advantage is controllable generation weighting, not lower perplexity. Cross-entropy still wins on raw next-token prediction accuracy (see Benchmarks below). TPO is useful when you want to upweight/downweight completions by reward without the complexity of PPO's value function and clipping.
 
 ## Install
 
@@ -115,13 +116,19 @@ Prompt + Labels ──▶ ┌─────────────────
 
 ## Benchmarks
 
-All benchmarks run on **NVIDIA GeForce RTX 3050 Laptop (4GB VRAM)**, CUDA 11.8, PyTorch 2.7.
+### Training: TPO vs CE vs PPO-clip (held-out perplexity)
 
-### Training Curves: TPO vs Cross-Entropy
+All methods evaluated on the **same metric**: perplexity on held-out data after 60 training steps, averaged over 3 seeds. Run on **RTX 3050 Laptop GPU**.
 
 [![Training Curves](benchmarks/results/figures/training_curves.png)](benchmarks/results/figures/training_curves.png)
 
-TPO converges to loss **0.94** vs Cross-Entropy **5.01** on the same task (tiny 2-layer transformer, 40 steps, 3 seeds).
+| Method | Final Perplexity | Note |
+|--------|----------------:|------|
+| Cross-Entropy | **65.00** | Best — direct next-token prediction |
+| TPO (beta=0.1) | 75.15 | ~15% higher perplexity, but enables reward-weighted generation |
+| PPO-clip (simplified) | 763.88 | Simplified implementation (no value function, no GAE) — not representative of full PPO |
+
+**Interpretation:** Cross-entropy is the optimal loss for next-token prediction. TPO trades ~15% higher perplexity for the ability to weight completions by advantage — useful when you want to upweight preferred responses and downweight rejected ones during RLHF, without the complexity of PPO's value function and clipping.
 
 ### Gradient Stability
 
@@ -131,20 +138,22 @@ TPO converges to loss **0.94** vs Cross-Entropy **5.01** on the same task (tiny 
 - Max gradient norm: **0.09** — stable across all regimes
 - Beta sweep shows expected temperature sensitivity
 
-### Speed Scaling (GPU)
+### Speed (GPU)
 
 [![Speed Scaling](benchmarks/results/figures/speed_scaling.png)](benchmarks/results/figures/speed_scaling.png)
 
+Measured on NVIDIA RTX 3050 Laptop (4GB VRAM), batch=8, vocab=32K:
+
 | Seq Len | Latency | Throughput |
 |:-------:|--------:|-----------:|
-| 32 | 4.17ms | 61,348 tok/s |
-| 64 | 8.29ms | 61,731 tok/s |
-| 128 | 16.48ms | 62,153 tok/s |
-| 256 | 32.80ms | 62,440 tok/s |
-| 512 | 65.45ms | 62,585 tok/s |
-| 1024 | 971.98ms | 8,428 tok/s |
+| 32 | 4.17ms | 61,345 tok/s |
+| 64 | 8.26ms | 62,021 tok/s |
+| 128 | 16.50ms | 62,046 tok/s |
+| 256 | 32.81ms | 62,418 tok/s |
+| 512 | 65.42ms | 62,614 tok/s |
+| 1024 | 929.89ms | 8,810 tok/s |
 
-Throughput is **linear** up to seq=512 (~62K tok/s), then drops at 1024 due to VRAM pressure on the 4GB GPU.
+Throughput is linear up to seq=512 (~62K tok/s), then drops at 1024 due to VRAM pressure.
 
 ### Reproduce
 
@@ -175,13 +184,12 @@ pre-commit install
 Run tests:
 ```bash
 pytest tests/ -v
-pytest benchmarks/ -v -s
 ruff check tpo_torch/
 ```
 
 ## Roadmap
 
-- [ ] Independent benchmarks vs PPO/GRPO on standard RLHF tasks
+- [ ] Independent benchmarks vs full PPO/GRPO (with value function) on standard RLHF tasks
 - [ ] Multi-GPU / DeepSpeed support
 - [ ] LoRA/QLoRA integration examples
 - [ ] Wandb / TensorBoard logging integration
