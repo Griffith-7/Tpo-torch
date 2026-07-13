@@ -1,7 +1,8 @@
-import torch
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+import torch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tpo_torch.loss import tpo_loss, tpo_loss_from_logits

@@ -1,9 +1,11 @@
 """TPO loss benchmarks — correctness + performance."""
 
 import time
-import torch
+
 import pytest
-from tpo_torch.loss import tpo_loss_from_logits, tpo_loss
+import torch
+
+from tpo_torch.loss import tpo_loss_from_logits
 
 
 class TestTPOLossCorrectness:

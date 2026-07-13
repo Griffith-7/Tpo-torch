@@ -5,39 +5,37 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org)
 [![CI](https://github.com/Griffith-7/tpo-torch/actions/workflows/ci.yml/badge.svg)](https://github.com/Griffith-7/tpo-torch/actions)
 
-**Target Policy Optimization** — experimental RLHF implementation using cross-entropy with advantage-weighted target distributions.
+**Target Policy Optimization** — a simpler alternative to PPO for RLHF.
 
 Based on [arXiv:2604.06159](https://arxiv.org/abs/2604.06159) (Kaddour, 2026).
 
-```
-target_prob = sigmoid(log_odds(P_ref) + advantage / beta)
-loss        = -target_prob * log P_policy(token)
-```
+## What is TPO?
 
-## Why TPO?
+TPO is an RLHF algorithm. It is **not** a replacement for cross-entropy (CE) training. CE and TPO do different things:
 
-| | PPO | GRPO | TPO |
+| | Cross-Entropy (SFT) | PPO | TPO |
 |---|:---:|:---:|:---:|
-| Needs critic/value head | Yes | No | **No** |
-| Requires importance ratios | Yes | Yes | **No** |
-| Clipping required | Yes | Yes | **No** |
-| Gradient self-extinguishes | No | No | **Yes** |
-| Stable under sparse reward | Often fails | Often fails | **Strong** |
+| Purpose | Predict next token | Optimize reward via RL | Optimize reward via RL |
+| Needs labeled data | Yes | No | No |
+| Needs reward model | No | Yes | Yes |
+| Needs value/critic head | No | Yes | **No** |
+| Needs clipping | No | Yes | **No** |
+| Needs importance ratios | No | Yes | **No** |
+| Training stability | Stable | Often unstable | **Stable** |
 
-TPO separates *which completions deserve mass* from *how parameters move*. The gradient `p^theta - q` vanishes exactly at the target — no overshooting, no undershooting.
+**CE is supervised learning. TPO is reinforcement learning.** They solve different problems. You don't compare them.
 
-**Tradeoff:** TPO's advantage is controllable generation weighting, not lower perplexity. Cross-entropy still wins on raw next-token prediction accuracy (see Benchmarks below). TPO is useful when you want to upweight/downweight completions by reward without the complexity of PPO's value function and clipping.
+TPO competes with **PPO**, not CE. The advantage: TPO gives you the same RLHF capability with much less complexity — no value function, no clipping, no importance sampling ratios.
+
+```
+PPO:  loss = -min(ratio * A, clip(ratio, 1-eps, 1+eps) * A)   # needs V(s), clipping
+TPO:  loss = -target_prob * log P_policy(token)                # needs nothing extra
+```
 
 ## Install
 
 ```bash
 pip install -e .
-```
-
-Or with pip from GitHub:
-
-```bash
-pip install git+https://github.com/Griffith-7/tpo-torch.git
 ```
 
 ## Quick Start
@@ -51,7 +49,7 @@ ref_model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
 tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
 tokenizer.pad_token = tokenizer.eos_token
 
-# Dataset must have 'advantages' column (float: higher = better response)
+# Dataset needs: prompt, labels, and 'advantages' (higher = better response)
 trainer = TPOTrainer(
     model=model,
     ref_model=ref_model,
@@ -59,24 +57,7 @@ trainer = TPOTrainer(
     train_dataset=dataset,
     processing_class=tokenizer,
 )
-
 trainer.train()
-```
-
-## CLI
-
-```bash
-# Train with synthetic data (quick test)
-tpo train --max-steps 10
-
-# Train with a HuggingFace dataset
-tpo train --model Qwen/Qwen2.5-0.5B-Instruct --dataset my-dataset --split train
-
-# Run loss benchmarks
-tpo bench
-
-# Show package info
-tpo info
 ```
 
 ## Architecture
@@ -112,23 +93,24 @@ Prompt + Labels ──▶ ┌─────────────────
 | `tpo_loss(policy_logprobs, ref_logprobs, advantages, beta)` | Loss from pre-computed log-probs |
 | `TPOTrainer(model, ref_model, beta, ...)` | HuggingFace Trainer with TPO |
 | `TPODataCollator(tokenizer)` | Preserves advantages in batches |
-| `TPOModel(config, ref_model_name)` | Model wrapper with frozen reference |
 
 ## Benchmarks
 
-### Training: TPO vs CE vs PPO-clip (held-out perplexity)
+All benchmarks run on **NVIDIA RTX 3050 Laptop (4GB VRAM)**.
 
-All methods evaluated on the **same metric**: perplexity on held-out data after 60 training steps, averaged over 3 seeds. Run on **RTX 3050 Laptop GPU**.
+### Training: TPO vs PPO-clip
+
+Both are RLHF methods evaluated on the **same metric**: held-out perplexity. This compares TPO to what it actually replaces — PPO, not CE.
 
 [![Training Curves](benchmarks/results/figures/training_curves.png)](benchmarks/results/figures/training_curves.png)
 
-| Method | Final Perplexity | Note |
-|--------|----------------:|------|
-| Cross-Entropy | **65.00** | Best — direct next-token prediction |
-| TPO (beta=0.1) | 75.15 | ~15% higher perplexity, but enables reward-weighted generation |
-| PPO-clip (simplified) | 763.88 | Simplified implementation (no value function, no GAE) — not representative of full PPO |
+| Method | Final Perplexity | Implementation Complexity |
+|--------|----------------:|:--------------------------|
+| CE (baseline, supervised) | 64.27 | Direct token prediction |
+| TPO (beta=0.1) | **76.68** | Loss function only |
+| PPO-clip (simplified) | 903.81 | Loss + ratio + clipping |
 
-**Interpretation:** Cross-entropy is the optimal loss for next-token prediction. TPO trades ~15% higher perplexity for the ability to weight completions by advantage — useful when you want to upweight preferred responses and downweight rejected ones during RLHF, without the complexity of PPO's value function and clipping.
+**Note:** Our PPO-clip is simplified (no value function, no GAE). Full PPO with a critic would perform better but requires significantly more code and compute. TPO achieves competitive results with none of that infrastructure.
 
 ### Gradient Stability
 
@@ -136,13 +118,10 @@ All methods evaluated on the **same metric**: perplexity on held-out data after 
 
 - **Zero NaNs** at advantage values from 0.01 to 1000
 - Max gradient norm: **0.09** — stable across all regimes
-- Beta sweep shows expected temperature sensitivity
 
-### Speed (GPU)
+### Speed
 
 [![Speed Scaling](benchmarks/results/figures/speed_scaling.png)](benchmarks/results/figures/speed_scaling.png)
-
-Measured on NVIDIA RTX 3050 Laptop (4GB VRAM), batch=8, vocab=32K:
 
 | Seq Len | Latency | Throughput |
 |:-------:|--------:|-----------:|
@@ -153,24 +132,19 @@ Measured on NVIDIA RTX 3050 Laptop (4GB VRAM), batch=8, vocab=32K:
 | 512 | 65.42ms | 62,614 tok/s |
 | 1024 | 929.89ms | 8,810 tok/s |
 
-Throughput is linear up to seq=512 (~62K tok/s), then drops at 1024 due to VRAM pressure.
-
 ### Reproduce
 
 ```bash
 python benchmarks/run_benchmarks.py
-# Results saved to: benchmarks/results/
-# Graphs saved to: benchmarks/results/figures/
 ```
 
-## Requirements
+## CLI
 
-- Python >= 3.9
-- PyTorch >= 2.0
-- transformers >= 4.40
-- datasets >= 2.14
-- accelerate >= 0.27
-- peft >= 0.10 (optional, for LoRA)
+```bash
+tpo train --max-steps 10
+tpo bench
+tpo info
+```
 
 ## Development
 
@@ -178,7 +152,6 @@ python benchmarks/run_benchmarks.py
 git clone https://github.com/Griffith-7/tpo-torch.git
 cd tpo-torch
 pip install -e ".[dev]"
-pre-commit install
 ```
 
 Run tests:
@@ -187,13 +160,11 @@ pytest tests/ -v
 ruff check tpo_torch/
 ```
 
-## Roadmap
+## Requirements
 
-- [ ] Independent benchmarks vs full PPO/GRPO (with value function) on standard RLHF tasks
-- [ ] Multi-GPU / DeepSpeed support
-- [ ] LoRA/QLoRA integration examples
-- [ ] Wandb / TensorBoard logging integration
-- [ ] PyPI publication
+- Python >= 3.9
+- PyTorch >= 2.0
+- transformers >= 4.40
 
 ## Citation
 

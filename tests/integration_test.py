@@ -1,8 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
-from transformers import TrainingArguments, PretrainedConfig, PreTrainedModel
 from datasets import Dataset
-import numpy as np
+from transformers import PretrainedConfig, PreTrainedModel, TrainingArguments
+
 from tpo_torch.trainer import TPOTrainer
 
 
@@ -34,7 +35,7 @@ def main():
     config = TinyConfig()
     model = TinyModel(config)
     ref_model = TinyModel(config)
-    
+
     # Create tiny dataset
     data = []
     for _ in range(10):
@@ -45,7 +46,7 @@ def main():
             "advantages": float(np.random.uniform(0.1, 1.0))
         })
     dataset = Dataset.from_list(data)
-    
+
     args = TrainingArguments(
         output_dir="./tiny_test",
         max_steps=5,
@@ -53,14 +54,14 @@ def main():
         logging_steps=1,
         remove_unused_columns=False
     )
-    
+
     trainer = TPOTrainer(
         model=model,
         ref_model=ref_model,
         args=args,
         train_dataset=dataset,
     )
-    
+
     print("[*] Running 5 steps of TPO on Tiny model...")
     trainer.train()
     print("[*] Integration Test Successful!")

@@ -1,13 +1,14 @@
+import os
+import sys
+
+import pytest
 import torch
 import torch.nn as nn
-import pytest
-import sys
-import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from transformers import PretrainedConfig, PreTrainedModel, TrainingArguments
 from datasets import Dataset
+from transformers import PretrainedConfig, PreTrainedModel, TrainingArguments
 
 
 class TinyConfig(PretrainedConfig):
@@ -108,8 +109,8 @@ class TestTPOEndToEnd:
         trainer.train()
 
         assert len(losses) >= 1, "Trainer should have computed at least 1 loss"
-        assert all(not (l != l) for l in losses), "No NaN losses"
-        assert all(l >= -1e-6 for l in losses), f"All losses >= ~0, got {losses}"
+        assert all(not (loss != loss) for loss in losses), "No NaN losses"
+        assert all(loss >= -1e-6 for loss in losses), f"All losses >= ~0, got {losses}"
 
     def test_no_ref_model_uses_policy_as_ref(self):
         from tpo_torch.trainer import TPOTrainer
