@@ -27,8 +27,6 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script, from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -55,64 +53,6 @@ pytestdebug.log
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-#  Usually these are generated when running jupyter notebook
-.ipython/
-
-# pyenv
-#  For a library or package, you might want to ignore these files since the version is
-#  usually handled by the environment or CI.
-# .python-version
-
-# pipenv
-#  According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#  However, in case of collaboration, if Pipfile.lock (and Pipfile) are not
-#  needed, they can be ignored.
-#  Pipfile.lock
-
-# poetry
-#  Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#  poetry.lock
-
-# pdm
-#  Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-# pdm.lock
-# .pdm-python
-# .pdm-build/
-
-# PEP 582; used by e.g. github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath vars
-*.sage.py
-
 # Environments
 .env
 .venv
@@ -122,46 +62,53 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
+# Jupyter Notebook
+.ipynb_checkpoints
 
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
 
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
+# pytype
 .pytype/
 
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
+# IDEs
 .idea/
-
-# VS Code
 .vscode/
+*.swp
+*.swo
+*~
 
-# Project Specific
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-specific outputs (do NOT commit training artifacts)
+test_output/
+tiny_test/
+outputs/
+logs/
+wandb/
+runs/
+
+# Model artifacts
+*.pt
+*.bin
+*.safetensors
+*.onnx
+*.h5
+
+# Misc
+*.log
+*.tmp
+debug_grad.py
+debug_math.py
 ides.md
 implementation_plan.md
 task.md
 walkthrough.md
-*.pt
-*.bin
-*.safetensors
-outputs/
-logs/
-debug_grad.py
-debug_math.py
 launch_kit.md

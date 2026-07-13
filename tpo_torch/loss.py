@@ -46,11 +46,14 @@ def tpo_loss_from_logits(
             advantages = torch.cat([advantages, pad], dim=1)
             
     # 5. Pointwise TPO Math (Numerical Armor)
-    # Stably compute target probability using log-odds shift:
-    # target = sigmoid(log_odds_ref + advantage/beta)
+    # Compute log-odds directly from log-probs without exp/log round-trip:
+    #   log(p)  = lse,  log(1-p) = log(1 - exp(lse))
+    #   log_odds = log(p/(1-p)) = lse - softplus(-lse) [via log-sigmoid identity]
+    #   target = sigmoid(log_odds_ref + advantage/beta)
     with torch.no_grad():
-        p_ref = torch.exp(r_lp_gathered).clamp(min=1e-8, max=1.0 - 1e-8)
-        log_odds_ref = torch.log(p_ref) - torch.log(1.0 - p_ref)
+        neg_r = -r_lp_gathered
+        log_odds_ref = r_lp_gathered - torch.nn.functional.softplus(neg_r)
+        log_odds_ref = log_odds_ref.clamp(min=-30.0, max=30.0)
         target_probs = torch.sigmoid(log_odds_ref + (advantages / beta)).detach()
         
     # 6. Cross-Entropy Loss
@@ -92,8 +95,9 @@ def tpo_loss(
         advantages = advantages.expand(-1, seq_len)
         
     with torch.no_grad():
-        p_ref = torch.exp(reference_logprobs).clamp(min=1e-8, max=1.0 - 1e-8)
-        log_odds_ref = torch.log(p_ref) - torch.log(1.0 - p_ref)
+        neg_r = -reference_logprobs
+        log_odds_ref = reference_logprobs - torch.nn.functional.softplus(neg_r)
+        log_odds_ref = log_odds_ref.clamp(min=-30.0, max=30.0)
         target_probs = torch.sigmoid(log_odds_ref + (advantages / beta)).detach()
         
     per_token_loss = -(target_probs * policy_logprobs)

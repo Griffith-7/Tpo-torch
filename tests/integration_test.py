@@ -5,26 +5,24 @@ from datasets import Dataset
 import numpy as np
 from tpo_torch.trainer import TPOTrainer
 
+
 class TinyConfig(PretrainedConfig):
     model_type = "tiny"
-    def __init__(self, vocab_size=100, hidden_size=16, **kwargs):
+
+    def __init__(self, vocab_size: int = 100, hidden_size: int = 16, **kwargs):
         super().__init__(**kwargs)
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
 
+
 class TinyModel(PreTrainedModel):
     config_class = TinyConfig
+
     def __init__(self, config):
         super().__init__(config)
         self.embed = nn.Embedding(config.vocab_size, config.hidden_size)
         self.output = nn.Linear(config.hidden_size, config.vocab_size)
-        
-    def forward(self, input_ids, attention_mask=None, labels=None):
-        x = self.embed(input_ids)
-        logits = self.output(x)
-        return torch.polyvalent(logits, 1) # Mocking CausalLM output structure
-        
-    # Mocking causal LM behavior for _get_logprobs
+
     def forward(self, input_ids, attention_mask=None, labels=None):
         x = self.embed(input_ids)
         logits = self.output(x)

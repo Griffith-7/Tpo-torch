@@ -1,7 +1,15 @@
-__version__ = "0.1.0"
+"""TPO-Torch — Target Policy Optimization for RLHF."""
 
-from .trainer import TPOTrainer, TPODataCollator
 from .loss import tpo_loss, tpo_loss_from_logits
 from .models import TPOModel
+from .trainer import TPODataCollator, TPOTrainer
 
-__all__ = ["TPOTrainer", "TPODataCollator", "tpo_loss", "tpo_loss_from_logits", "TPOModel"]
+__version__ = "0.1.0"
+
+__all__ = [
+    "TPODataCollator",
+    "TPOModel",
+    "TPOTrainer",
+    "tpo_loss",
+    "tpo_loss_from_logits",
+]
