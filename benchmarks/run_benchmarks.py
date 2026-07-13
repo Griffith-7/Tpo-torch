@@ -163,13 +163,12 @@ def train_tpo(model, tx, ty, vx, vy, vocab=64):
 
 
 def run_training(vocab=64, seq=16, n_seeds=3):
-    print(f"[1/3] Training: TPO vs PPO-clip vs CE baseline ({n_seeds} seeds)")
+    print(f"[1/3] Training: TPO vs PPO-clip ({n_seeds} seeds)")
     tx, ty = make_data(256, seq, vocab)
     vx, vy = make_data(64, seq, vocab)
 
     all_ppls = {}
     for name, fn in [
-        ("CE (baseline)", train_ce),
         ("PPO-clip", train_ppo),
         ("TPO", train_tpo),
     ]:
@@ -185,13 +184,9 @@ def run_training(vocab=64, seq=16, n_seeds=3):
     stds = {k: np.std(v, axis=0) for k, v in all_ppls.items()}
     steps = np.arange(1, len(means["TPO"]) + 1)
 
-    colors = {
-        "CE (baseline)": "#9E9E9E",
-        "PPO-clip": "#4CAF50",
-        "TPO": "#E91E63",
-    }
+    colors = {"PPO-clip": "#4CAF50", "TPO": "#E91E63"}
     fig, ax = plt.subplots(figsize=(10, 5))
-    for name in ["CE (baseline)", "PPO-clip", "TPO"]:
+    for name in ["PPO-clip", "TPO"]:
         ax.plot(steps, means[name], label=name, color=colors[name], lw=2)
         ax.fill_between(
             steps,
@@ -211,7 +206,6 @@ def run_training(vocab=64, seq=16, n_seeds=3):
     print(f"    -> {FIG_DIR / 'training_curves.png'}")
     return {
         "metric": "perplexity_on_held_out_data",
-        "ce_baseline": round(float(means["CE (baseline)"][-1]), 2),
         "ppo_final": round(float(means["PPO-clip"][-1]), 2),
         "tpo_final": round(float(means["TPO"][-1]), 2),
     }

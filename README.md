@@ -100,15 +100,14 @@ All benchmarks run on **NVIDIA RTX 3050 Laptop (4GB VRAM)**.
 
 ### Training: TPO vs PPO-clip
 
-Both are RLHF methods evaluated on the **same metric**: held-out perplexity. This compares TPO to what it actually replaces — PPO, not CE.
+Both are RLHF methods evaluated on the **same metric**: held-out perplexity.
 
 [![Training Curves](benchmarks/results/figures/training_curves.png)](benchmarks/results/figures/training_curves.png)
 
 | Method | Final Perplexity | Implementation Complexity |
 |--------|----------------:|:--------------------------|
-| CE (baseline, supervised) | 64.27 | Direct token prediction |
-| TPO (beta=0.1) | **76.68** | Loss function only |
-| PPO-clip (simplified) | 903.81 | Loss + ratio + clipping |
+| TPO (beta=0.1) | **74.51** | Loss function only |
+| PPO-clip (simplified) | 825.66 | Loss + ratio + clipping |
 
 **Note:** Our PPO-clip is simplified (no value function, no GAE). Full PPO with a critic would perform better but requires significantly more code and compute. TPO achieves competitive results with none of that infrastructure.
 
