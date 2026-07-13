@@ -95,6 +95,9 @@ logs/
 wandb/
 runs/
 
+# Benchmark raw data (regenerate with: python benchmarks/run_benchmarks.py)
+benchmarks/results/benchmark_results.json
+
 # Model artifacts
 *.pt
 *.bin

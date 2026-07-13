@@ -1,5 +1,4 @@
-from transformers import PreTrainedModel, AutoModelForCausalLM, AutoConfig
-import torch.nn as nn
+from transformers import AutoConfig, AutoModelForCausalLM, PreTrainedModel
 
 
 class TPOModel(PreTrainedModel):

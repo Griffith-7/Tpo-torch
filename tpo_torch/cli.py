@@ -8,7 +8,7 @@ def cmd_train(args: argparse.Namespace) -> None:
     """Run TPO training."""
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
-    from datasets import Dataset
+
     from tpo_torch.trainer import TPOTrainer
 
     print(f"[*] Loading tokenizer: {args.model}")
@@ -63,7 +63,9 @@ def cmd_bench(args: argparse.Namespace) -> None:
     """Run TPO benchmarks."""
     print("[*] Running TPO loss benchmarks...")
     import time
+
     import torch
+
     from tpo_torch.loss import tpo_loss_from_logits
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -93,7 +95,7 @@ def cmd_bench(args: argparse.Namespace) -> None:
     print(f"[*] {n_iters} iterations in {elapsed:.3f}s")
     print(f"[*] Avg: {elapsed / n_iters * 1000:.2f}ms per step")
     print(f"[*] Loss value: {loss.item():.4f}")
-    print(f"[*] Benchmark complete.")
+    print("[*] Benchmark complete.")
 
 
 def cmd_info(args: argparse.Namespace) -> None:
@@ -121,12 +123,14 @@ def _create_synthetic_dataset(tokenizer, num_samples: int = 100):
     for i in range(num_samples):
         text = f"Sample prompt {i}. What is reinforcement learning?"
         tokens = tokenizer(text, truncation=True, max_length=128, padding="max_length")
-        data.append({
-            "input_ids": tokens["input_ids"],
-            "attention_mask": tokens["attention_mask"],
-            "labels": tokens["input_ids"],
-            "advantages": float(np.random.uniform(0.1, 1.5)),
-        })
+        data.append(
+            {
+                "input_ids": tokens["input_ids"],
+                "attention_mask": tokens["attention_mask"],
+                "labels": tokens["input_ids"],
+                "advantages": float(np.random.uniform(0.1, 1.5)),
+            }
+        )
     return Dataset.from_list(data)
 
 
@@ -139,7 +143,9 @@ def main() -> None:
 
     # train
     p_train = subparsers.add_parser("train", help="Train a model with TPO")
-    p_train.add_argument("--model", type=str, default="Qwen/Qwen2.5-0.5B-Instruct", help="HuggingFace model name")
+    p_train.add_argument(
+        "--model", type=str, default="Qwen/Qwen2.5-0.5B-Instruct", help="HuggingFace model name"
+    )
     p_train.add_argument("--dataset", type=str, default=None, help="HuggingFace dataset name")
     p_train.add_argument("--split", type=str, default="train", help="Dataset split")
     p_train.add_argument("--output-dir", type=str, default="./tpo_output", help="Output directory")
@@ -148,7 +154,9 @@ def main() -> None:
     p_train.add_argument("--lr", type=float, default=2e-5, help="Learning rate")
     p_train.add_argument("--beta", type=float, default=0.1, help="TPO beta temperature")
     p_train.add_argument("--save-steps", type=int, default=50, help="Save checkpoint every N steps")
-    p_train.add_argument("--num-samples", type=int, default=100, help="Synthetic dataset size (if no dataset)")
+    p_train.add_argument(
+        "--num-samples", type=int, default=100, help="Synthetic dataset size (if no dataset)"
+    )
     p_train.set_defaults(func=cmd_train)
 
     # bench

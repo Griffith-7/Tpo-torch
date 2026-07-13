@@ -115,20 +115,43 @@ Prompt + Labels ──▶ ┌─────────────────
 
 ## Benchmarks
 
-Tested on NVIDIA RTX 3050 (4GB VRAM):
+All benchmarks run on **NVIDIA GeForce RTX 3050 Laptop (4GB VRAM)**, CUDA 11.8, PyTorch 2.7.
 
-| Config | Batch | Seq Len | Vocab | Time/Step |
-|--------|:-----:|:-------:|:-----:|:---------:|
-| Small | 4 | 64 | 1000 | ~2ms |
-| Medium | 8 | 128 | 32000 | ~15ms |
-| Large | 8 | 512 | 32000 | ~60ms |
+### Training Curves: TPO vs Cross-Entropy
 
-Run your own:
+[![Training Curves](benchmarks/results/figures/training_curves.png)](benchmarks/results/figures/training_curves.png)
+
+TPO converges to loss **0.94** vs Cross-Entropy **5.01** on the same task (tiny 2-layer transformer, 40 steps, 3 seeds).
+
+### Gradient Stability
+
+[![Gradient Stability](benchmarks/results/figures/gradient_stability.png)](benchmarks/results/figures/gradient_stability.png)
+
+- **Zero NaNs** at advantage values from 0.01 to 1000
+- Max gradient norm: **0.09** — stable across all regimes
+- Beta sweep shows expected temperature sensitivity
+
+### Speed Scaling (GPU)
+
+[![Speed Scaling](benchmarks/results/figures/speed_scaling.png)](benchmarks/results/figures/speed_scaling.png)
+
+| Seq Len | Latency | Throughput |
+|:-------:|--------:|-----------:|
+| 32 | 4.17ms | 61,348 tok/s |
+| 64 | 8.29ms | 61,731 tok/s |
+| 128 | 16.48ms | 62,153 tok/s |
+| 256 | 32.80ms | 62,440 tok/s |
+| 512 | 65.45ms | 62,585 tok/s |
+| 1024 | 971.98ms | 8,428 tok/s |
+
+Throughput is **linear** up to seq=512 (~62K tok/s), then drops at 1024 due to VRAM pressure on the 4GB GPU.
+
+### Reproduce
 
 ```bash
-tpo bench
-# or
-pytest benchmarks/ -v -s
+python benchmarks/run_benchmarks.py
+# Results saved to: benchmarks/results/
+# Graphs saved to: benchmarks/results/figures/
 ```
 
 ## Requirements

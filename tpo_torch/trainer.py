@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import torch
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+import torch
 from torch.utils.data import Dataset
 from transformers import (
-    AutoModelForCausalLM,
     PreTrainedModel,
     PreTrainedTokenizerBase,
     Trainer,
@@ -52,7 +51,11 @@ class TPODataCollator:
             padded_labels = []
             for lbl in labels:
                 if len(lbl) < pad_length:
-                    pad_id = self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None else -100
+                    pad_id = (
+                        self.tokenizer.pad_token_id
+                        if self.tokenizer.pad_token_id is not None
+                        else -100
+                    )
                     lbl = lbl + [pad_id] * (pad_length - len(lbl))
                 padded_labels.append(lbl[:pad_length])
             batch["labels"] = torch.tensor(padded_labels)
